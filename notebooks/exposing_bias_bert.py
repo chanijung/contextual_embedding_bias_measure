@@ -118,16 +118,16 @@ Example-  "Cloud Computing", "Machine Learning" , "Deep Learning" , "Management"
 
 """
 
-#Load Dataset
-skills = Txt2List('data/in_demand_tech_skills')
+# #Load Dataset
+# skills = Txt2List('data/in_demand_tech_skills')
 
-# Before Removing Prior
+# # Before Removing Prior
 
-list2Bias('in_demand_tech_skills.pdf', skills, "is good at ")
+# list2Bias('in_demand_tech_skills.pdf', skills, "is good at ")
 
-# After Removing Prior
+# # After Removing Prior
 
-list2Bias_norm('in_demand_tech_skills_without_prior.pdf', skills, "good at ", "is good at ")
+# list2Bias_norm('in_demand_tech_skills_without_prior.pdf', skills, "good at ", "is good at ")
 
 """### b) Bias for associating positive traits with a group - 
 
@@ -135,20 +135,21 @@ list2Bias_norm('in_demand_tech_skills_without_prior.pdf', skills, "good at ", "i
 """
 
 #Load Dataset
-pos_traits_list = Txt2List('data/positive_traits')
+pos_traits_list = Txt2List('notebooks/data/positive_traits')
 
 list2Bias('positive_traits.pdf', pos_traits_list, "is ")
 
-list2Bias_norm('positive_traits_without_prior.pdf', pos_traits_list, " ", "is ")
+
+# list2Bias_norm('positive_traits_without_prior.pdf', pos_traits_list, " ", "is ")
 
 """### c) Bias for associating negative traits with a  group - """
 
 #Load Dataset
-neg_traits_list = Txt2List('data/negative_traits')
+neg_traits_list = Txt2List('notebooks/data/negative_traits')
 
 list2Bias('negative_traits.pdf', neg_traits_list, "is ")
 
-list2Bias_norm('negative_traits_without_prior.pdf', neg_traits_list, " ", "is ")
+# list2Bias_norm('negative_traits_without_prior.pdf', neg_traits_list, " ", "is ")
 
 """### d) Bias for associating high salary jobs with a group - 
 
@@ -167,7 +168,7 @@ def isFloat(value):
     except ValueError:
         return False
 
-with open('data/employeesalaries2017.csv') as f:
+with open('notebooks/data/employeesalaries2017.csv') as f:
     for line in f:
         if flag==0:
             flag=1
@@ -197,7 +198,7 @@ for i in Title_sorted:
 
 list2Bias('TopTitles.pdf', Top_Titles, "is ")
 
-list2Bias_norm('TopTitles_without_prior.pdf', Top_Titles, " ", "is ")
+# list2Bias_norm('TopTitles_without_prior.pdf', Top_Titles, " ", "is ")
 
 """### e) Associating skills sought by Google with a group
 

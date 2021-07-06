@@ -84,21 +84,64 @@ from collections import defaultdict
 
 def get_mask_fill_logits(sentence: str, words: Iterable[str],
                          use_last_mask=False, apply_softmax=False) -> Dict[str, float]:
-    mask_i = processor.get_index(sentence, "[MASK]", last=use_last_mask)
-    logits = defaultdict(list)
-    out_logits = get_logits(sentence)
-    if apply_softmax: 
-        out_logits = softmax(out_logits)
-    return {w: out_logits[mask_i, processor.token_to_index(w)] for w in words}
+    # mask_i = processor.get_index(sentence, "[MASK]", last=use_last_mask)
+    # logits = defaultdict(list)
+    # out_logits = get_logits(sentence)
+    # if apply_softmax: 
+    #     out_logits = softmax(out_logits)
+    # return {w: out_logits[mask_i, processor.token_to_index(w)] for w in words}
+
+    sentences = [sentence]
+    print(f'sentences {sentences}')
+
+    # printf(f'archive_file {archive_file}')
+    batcher = KnowBertBatchifier(archive_file, masking_strategy='full_mask')
+    mask_id = batcher.tokenizer_and_candidate_generator.bert_tokenizer.vocab['[MASK]']
+    print(f'mask_id {mask_id}')
+
+    # batcher takes raw untokenized sentences
+    # and yields batches of tensors needed to run KnowBert
+    for batch in batcher.iter_batches(sentences):
+        model_output = model(**batch)
+        token_mask = batch['tokens']['tokens'] == mask_id
+
+        # (batch_size, timesteps, vocab_size)
+        prediction_scores, _ = model.pretraining_heads(
+                model_output['contextual_embeddings'], model_output['pooled_output']
+        )
+        print(f'pred score size {prediction_scores.size()}')
+
+        if apply_softmax: 
+            prediction_scores = softmax(prediction_scores)
+
+        # (num_masked_tokens, vocab_size)
+        mask_token_probabilities = prediction_scores.masked_select(token_mask.unsqueeze(-1)).view(-1, prediction_scores.shape[-1])  # (num_masked_tokens, vocab_size)
+        print(f'mask_token_prob size {mask_token_probabilities.size()}')
+
+    vocab = batcher.tokenizer_and_candidate_generator.bert_tokenizer.vocab
+    for w in words:
+        print(f'vocab index for {w}: {vocab[w]}')
+    return {w: mask_token_probabilities[:,vocab[w]] for w in words}
 
 
-# Here, we will consider the "bias" of word $ w $ to be the difference in the strength of association of $ w $ with certain groups. For instance, the word "nurse" is more strongly associated (in general) with the female gender as opposed to the male gender. For the sake of argument, we will discuss gender bias for the remainder of this notebook unless explicitly noted otherwise.
+# Here, we will consider the "bias" of word $ w $ to be the difference in the strength of association of $ w $ with certain groups. 
+# For instance, the word "nurse" is more strongly associated (in general) with the female gender as opposed to the male gender.
+# For the sake of argument, we will discuss gender bias for the remainder of this notebook unless explicitly noted otherwise.
 # 
-# There are two ways of measuring bias via the language model probabilities. The first is to measure the difference in probability of predicting $ w $ in a female/male context (this is analogous to the CBOW model in word2vec. The other is to measure the difference in probability of predicting a female/male context in the presence of $ w $, which is analogous to the skipgram model in word2vec.
+# There are two ways of measuring bias via the language model probabilities.
+# The first is to measure the difference in probability of predicting $ w $ in a female/male context
+# (this is analogous to the CBOW model in word2vec. 
+# The other is to measure the difference in probability of predicting a female/male context in the presence of $ w $, 
+# which is analogous to the skipgram model in word2vec.
 # 
-# We will denote the first difference as the *target fill bias* and the latter as the *context fill bias* (temporary terms). We measure the difference in probability by the log odds ratio. 
+# We will denote the first difference as the *target fill bias* and the latter as the *context fill bias* (temporary terms). 
+# We measure the difference in probability by the log odds ratio. 
 # 
-# We want to measure the conditional probabilities in both cases (with the condition being either the word $ w $ or the context), so we need to correct for differences in prior probabilities. When conditioning on the context, the prior probability naturally cancels out. However, when conditioning on the word $ w $, the prior probabilities of male and female contexts may distort the measure of bias. To correct for this, we will measure the prior probability of female and male contexts by masking the target word $ w $.
+# We want to measure the conditional probabilities in both cases (with the condition being either the word $ w $ or the context), 
+# so we need to correct for differences in prior probabilities.
+# When conditioning on the context, the prior probability naturally cancels out.
+# However, when conditioning on the word $ w $, the prior probabilities of male and female contexts may distort the measure of bias. 
+# To correct for this, we will measure the prior probability of female and male contexts by masking the target word $ w $.
 
 # In[11]:
 
@@ -127,7 +170,7 @@ def bias_score(sentence: str, gender_words: Iterable[str],
         sentence.replace("XXX", "[MASK]").replace("GGG", "[MASK]"), 
         gender_words, use_last_mask=gender_comes_first,
     )
-    subject_fill_bias_prior_correction = subject_fill_prior_logits[mw] -                                             subject_fill_prior_logits[fw]
+    subject_fill_bias_prior_correction = subject_fill_prior_logits[mw] - subject_fill_prior_logits[fw]
     
     # probability of filling "programmer" into [MASK] when subject is male/female
     try:
