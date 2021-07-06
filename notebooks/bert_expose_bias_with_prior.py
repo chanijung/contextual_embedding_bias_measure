@@ -89,6 +89,7 @@ archive_file = 'debiased_wordnet/model.tar.gz'
 params = Params({"archive_file": archive_file})
 # load model and batcher
 model = ModelArchiveFromParams.from_params(params=params)
+device = list(range(torch.cuda.device_count()))[0]
 model.cuda()
 model.eval()
 for p in model.parameters():
@@ -239,7 +240,7 @@ def get_logit_scores(input_sentence: str, words: int) -> Dict[str, float]:
     sentences = [input_sentence]
     print(f'sentences: {sentences}')
 
-    printf(f'archive_file {archive_file}')
+    print(f'archive_file {archive_file}')
     batcher = KnowBertBatchifier(archive_file, masking_strategy='full_mask')
     mask_id = batcher.tokenizer_and_candidate_generator.bert_tokenizer.vocab['[MASK]']
     print(f'mask_id {mask_id}')
@@ -248,8 +249,11 @@ def get_logit_scores(input_sentence: str, words: int) -> Dict[str, float]:
     # and yields batches of tensors needed to run KnowBert
     with torch.no_grad():
         for batch in batcher.iter_batches(sentences):
-            model_output = model(**batch)
-            token_mask = batch['tokens']['tokens'] == mask_id
+            # batch = {k:v.type(torch.long).to(device) for k,v in batch.items()}
+            print(f'batch\n{batch}')
+            batch_ = move_to(batch, device)
+            model_output = model(**batch_)
+            token_mask = batch_['tokens']['tokens'] == mask_id
 
             # (batch_size, timesteps, vocab_size)
             prediction_scores, _ = model.pretraining_heads(
@@ -273,5 +277,19 @@ def get_log_odds(input_sentence: str, word1: str, word2: str) -> float:
     return scores[word1] - scores[word2]
 
 
-
+def move_to(obj, device):
+  if torch.is_tensor(obj):
+    return obj.to(device)
+  elif isinstance(obj, dict):
+    res = {}
+    for k, v in obj.items():
+      res[k] = move_to(v, device)
+    return res
+  elif isinstance(obj, list):
+    res = []
+    for v in obj:
+      res.append(move_to(v, device))
+    return res
+  else:
+    raise TypeError("Invalid type for move_to")
 

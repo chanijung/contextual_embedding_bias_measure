@@ -919,7 +919,7 @@ class KnowBert(BertPretrainedMetricsLoss):
                     contextual_embeddings = layer(contextual_embeddings, attention_mask)
             start_layer_index = end_layer_index
 
-            del attention_mask
+            # del attention_mask
 
             # run the SolderedKG component
             if soldered_kg_key is not None:
@@ -937,7 +937,7 @@ class KnowBert(BertPretrainedMetricsLoss):
                         **soldered_kwargs)
 
                 del soldered_kwargs
-                del mask
+                # del mask
 
                 if 'loss' in kg_output:
                     loss = loss + kg_output['loss']
@@ -947,8 +947,8 @@ class KnowBert(BertPretrainedMetricsLoss):
                 for key in kg_output.keys():
                     if key != 'loss' and key != 'contextual_embeddings':
                         output[soldered_kg_key][key] = kg_output[key]
-            else:
-                del mask
+            # else:
+            #     del mask
 
         del kg_output
 

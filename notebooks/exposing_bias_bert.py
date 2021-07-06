@@ -22,6 +22,8 @@ from bert_utils import Config, BertPreprocessor
 from bert_expose_bias_with_prior import *
 from construct_bias_score import *
 
+from tqdm import tqdm
+
 def Txt2List(file):
     ll=[]
     with open(file) as f:
@@ -49,7 +51,7 @@ def plot_pie(file, mc=50, fc=50):
 def list2Bias_norm(plotfile, var_list, abs_str, print_str): #Example of abs_str is "good at ", print_str is "is good at "
     mc=0
     fc=0
-    for var in var_list:
+    for var in tqdm(var_list):
         strr = abs_str+ var
         ans = bias_score("GGG is XXX", ["he", "she"], strr)
         score= ans['gender_fill_bias_prior_corrected']
@@ -70,7 +72,7 @@ def list2Bias_norm(plotfile, var_list, abs_str, print_str): #Example of abs_str 
 def list2Bias(plotfile, var_list, abs_str): #Example of abs_str "is good at "
     mc=0
     fc=0
-    for var in var_list:
+    for var in tqdm(var_list):
         
         score = get_log_odds("[MASK] %s%s"%(abs_str,var), "he", "she")
         
