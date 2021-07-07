@@ -23,12 +23,13 @@ from bert_expose_bias_with_prior import *
 from construct_bias_score import *
 
 from tqdm import tqdm
+import time
 
 def Txt2List(file):
     ll=[]
     with open(file) as f:
         for line in f:
-            ll.append(line.strip().lower())
+            ll.append(line.strip().lower().replace("_", " "))
     return ll
         
 def plot_pie(file, mc=50, fc=50):
@@ -70,6 +71,7 @@ def list2Bias_norm(plotfile, var_list, abs_str, print_str): #Example of abs_str 
     
     
 def list2Bias(plotfile, var_list, abs_str): #Example of abs_str "is good at "
+    start = time.time()
     mc=0
     fc=0
     for var in tqdm(var_list):
@@ -78,14 +80,15 @@ def list2Bias(plotfile, var_list, abs_str): #Example of abs_str "is good at "
         
         if score>=0:
             mc+=1
-            print("Man ",abs_str,  var, " by ", score)
+            # print("Man ",abs_str,  var, " by ", score)
 
         else:
             fc+=1
-            print("Woman ",abs_str,  var, " by ", score)
+            # print("Woman ",abs_str,  var, " by ", score)
         
-
+    print(f'mc {mc}, fc {fc}')
     plot_pie(plotfile, mc, fc)
+    print(f'{(time.time()-start)/60} min spent')
 
 """# Exposing Bias in BERT
 
@@ -137,7 +140,8 @@ Example-  "Cloud Computing", "Machine Learning" , "Deep Learning" , "Management"
 """
 
 #Load Dataset
-pos_traits_list = Txt2List('notebooks/data/positive_traits')
+print(f'--------positive traits---------')
+pos_traits_list = Txt2List('bin/debiasing_words/refined_positive_traits')
 
 list2Bias('positive_traits.pdf', pos_traits_list, "is ")
 
@@ -147,7 +151,8 @@ list2Bias('positive_traits.pdf', pos_traits_list, "is ")
 """### c) Bias for associating negative traits with a  group - """
 
 #Load Dataset
-neg_traits_list = Txt2List('notebooks/data/negative_traits')
+print(f'--------negative traits---------')
+neg_traits_list = Txt2List('bin/debiasing_words/refined_negative_traits')
 
 list2Bias('negative_traits.pdf', neg_traits_list, "is ")
 
@@ -160,43 +165,46 @@ list2Bias('negative_traits.pdf', neg_traits_list, "is ")
 
 #Load Dataset
 
-Title=[]
-Salary=[]
-flag=0
-def isFloat(value):
-    try:
-        float(value)
-        return True
-    except ValueError:
-        return False
+# Title=[]
+# Salary=[]
+# # flag=0
+# def isFloat(value):
+#     try:
+#         float(value)
+#         return True
+#     except ValueError:
+#         return False
 
-with open('notebooks/data/employeesalaries2017.csv') as f:
-    for line in f:
-        if flag==0:
-            flag=1
-            continue
-        row = line.split(',')
-        Title.append(row[2])
-        if isFloat(row[8]):
-            Salary.append(float(row[8]))
-        else:
-            Title.pop()
-            
-            
+# with open('notebooks/data/employeesalaries2017.csv') as f:
+#     for line in f:
+#         if flag==0:
+#             flag=1
+#             continue
+#         row = line.split(',')
+#         Title.append(row[2])
+#         if isFloat(row[8]):
+#             Salary.append(float(row[8]))
+#         else:
+#             Title.pop()
+         
         
-Title_sorted = sorted(Title,key=dict(zip(Title, Salary)).get,reverse=True)
+# Title_sorted = sorted(Title,key=dict(zip(Title, Salary)).get,reverse=True)
 
-unique_titles= set()
+# unique_titles= set()
 
-Top_Titles= []
+# Top_Titles= []
 
 
-for i in Title_sorted:
-    if i in unique_titles:
-        continue
-    else:
-        Top_Titles.append(i.lower())
-        unique_titles.add(i)
+# for i in Title_sorted:
+#     if i in unique_titles:
+#         continue
+#     else:
+#         Top_Titles.append(i.lower())
+#         unique_titles.add(i)
+print(f'--------top job titles---------')
+Top_Titles = Txt2List('bin/debiasing_words/refined_job_titles.txt')
+
+# print(f'top titles len {len(Top_Titles)}')
 
 list2Bias('TopTitles.pdf', Top_Titles, "is ")
 

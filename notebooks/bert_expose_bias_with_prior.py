@@ -11,6 +11,8 @@ from typing import *
 import matplotlib.pyplot as plt
 get_ipython().run_line_magic('matplotlib', 'inline')
 
+import time
+
 
 # In[2]:
 
@@ -95,6 +97,9 @@ model.eval()
 for p in model.parameters():
     p.requires_grad_(False)
 print("model built!!!!!!!")
+
+batcher = KnowBertBatchifier(archive_file, masking_strategy='full_mask')
+mask_id = batcher.tokenizer_and_candidate_generator.bert_tokenizer.vocab['[MASK]']
 # if torch.cuda.is_available():
 #     cuda_device = list(range(torch.cuda.device_count()))
 #     model = model.cuda(cuda_device[0])
@@ -236,40 +241,45 @@ def get_logit_scores(input_sentence: str, words: int) -> Dict[str, float]:
     # out_logits = get_logits(input_sentence)
     # input_toks = tokenize(input_sentence)
     # i = _get_mask_index(input_toks)
+    start = time.time()
 
     sentences = [input_sentence]
-    print(f'sentences: {sentences}')
+    # print(f'sentences: {sentences}')
 
-    print(f'archive_file {archive_file}')
-    batcher = KnowBertBatchifier(archive_file, masking_strategy='full_mask')
-    mask_id = batcher.tokenizer_and_candidate_generator.bert_tokenizer.vocab['[MASK]']
-    print(f'mask_id {mask_id}')
+    # print(f'archive_file {archive_file}')
+    # batcher = KnowBertBatchifier(archive_file, masking_strategy='full_mask')
+    # mask_id = batcher.tokenizer_and_candidate_generator.bert_tokenizer.vocab['[MASK]']
+    # print(f'mask_id {mask_id}')
 
     # batcher takes raw untokenized sentences
     # and yields batches of tensors needed to run KnowBert
+    # print(f'created batcher, mask_id {time.time()-start}')
     with torch.no_grad():
         for batch in batcher.iter_batches(sentences):
             # batch = {k:v.type(torch.long).to(device) for k,v in batch.items()}
-            print(f'batch\n{batch}')
+            # print(f'batch\n{batch}')
             batch_ = move_to(batch, device)
             model_output = model(**batch_)
+            # print(f'model_output {time.time()-start}')
             token_mask = batch_['tokens']['tokens'] == mask_id
 
             # (batch_size, timesteps, vocab_size)
             prediction_scores, _ = model.pretraining_heads(
                     model_output['contextual_embeddings'], model_output['pooled_output']
             )
-            print(f'pred score size {prediction_scores.size()}')
+            # print(f'prediction scores {time.time()-start}')
+            # print(f'pred score size {prediction_scores.size()}')
 
             # (num_masked_tokens, vocab_size)
             mask_token_probabilities = prediction_scores.masked_select(token_mask.unsqueeze(-1)).view(-1, prediction_scores.shape[-1])  # (num_masked_tokens, vocab_size)
-            print(f'mask_token_prob size {mask_token_probabilities.size()}')
+            # print(f'mask_token_prob size {mask_token_probabilities.size()}')
 
     mask_token_probabilities = mask_token_probabilities.detach().cpu().numpy()
     # return {w: out_logits[i, token_indexer.vocab[w]] for w in words}
     vocab = batcher.tokenizer_and_candidate_generator.bert_tokenizer.vocab
-    for w in words:
-        print(f'vocab index for {w}: {vocab[w]}')
+    # print(f'before return {time.time()-start}')
+    # for w in words:
+        # print(f'vocab index for {w}: {vocab[w]}')
     return {w: mask_token_probabilities[:,vocab[w]] for w in words}
 
 def get_log_odds(input_sentence: str, word1: str, word2: str) -> float:
