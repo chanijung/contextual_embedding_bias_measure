@@ -79,27 +79,8 @@ def debias_tucker_embeddings(tucker_archive, tucker_hdf5, vocab_file):
         id1 = vocab.get_token_index('female.'+info, 'entity')
         id2 = vocab.get_token_index('male.'+info, 'entity')
         gender_dir_vecs.append(tucker[id1+1, :]-tucker[id2+1,:])
-    lambdas = [0.5]*5   #Parameters which decide the amount of debiasing
+    lambdas = [1.0]*5   #Parameters which decide the amount of debiasing
 
-    # #Debias tucker embeddings of occupation words
-    # occ = open("bin/professions.txt", "r")
-    # num_debiased_word = 0
-    # num_debiased_embeddings = 0
-    # for line in occ.readlines():
-    #     entities = [w for w in vocab_list if w.startswith(line.strip()+".n.")]
-    #     if len(entities)>0:
-    #         num_debiased_word += 1
-    #     for entity in entities: #For each entity corresponding to each occupation
-    #         id = vocab.get_token_index(entity, 'entity')
-    #         # print(f'entity {entity}, id {id}')
-    #         if id<0 or id>=NUM_EMBEDDINGS:
-    #             continue
-    #         num_debiased_embeddings += 1
-    #         for i in range(len(gender_dir_vecs)):  #Debias the embedding
-    #             gdv = gender_dir_vecs[i]
-    #             lam = lambdas[i]
-    #             tucker[id+1, :] = tucker[id+1, :] - lam * np.dot(tucker[id+1, :], gdv) / np.linalg.norm(gdv)
-    # print(f'debiased {num_debiased_word} words, {num_debiased_embeddings} embeddings')
 
     #Debias tucker embeddings of job titles and traits
     num_debiased_word = 0
@@ -131,7 +112,35 @@ def debias_tucker_embeddings(tucker_archive, tucker_hdf5, vocab_file):
     #Write to the new embeddings file.
     with h5py.File('debiased_tucker_embeddings.hdf5', 'w') as fout:
         ds = fout.create_dataset('tucker', data=tucker)
-            
+
+
+def create_refined_word_lists():
+    vocab_file = "wordnet_synsets_mask_null_vocab.txt"
+    with open(vocab_file, 'r') as fin:
+        vocab_list = fin.read().strip().split('\n')
+    for filename in ["job_titles.txt", "negative_traits", "positive_traits"]:
+        print(f'{filename}')
+        num_debiased_word = 0
+        num_notfound_words = 0
+        not_found_words = []
+        f = open("bin/debiasing_words/"+filename, "r")
+        new_f = open("bin/debiasing_words/refined_"+filename, "a")
+        for line in f.readlines():
+            target_word = line.strip().lower().replace(" - ","_").replace("-","_").replace(" ","_")
+            entities = [w for w in vocab_list if w.startswith(target_word+".")]
+            if len(entities)>0:
+                num_debiased_word += 1
+                new_f.write(target_word+"\n")
+            else:
+                num_notfound_words += 1
+                not_found_words.append(target_word)
+                # print(f'Not found: {target_word}')
+        print(f'Found: {num_debiased_word}')
+        print(f'Not found: {num_notfound_words}')
+        print(not_found_words)
+
+    # print(f'debiased {num_debiased_word} words, {num_debiased_embeddings} embeddings')
+    # print(f'Num not found: {num_notfound_words}')
 
 
 def get_gensen_synset_definitions(entity_file, vocab_file, gensen_file):
@@ -223,6 +232,5 @@ if __name__ == '__main__':
         combine_tucker_gensen(args.tucker_hdf5_file, args.gensen_file, args.all_embeddings_file)
     elif args.debias_tucker:
         debias_tucker_embeddings(args.tucker_archive_file, args.tucker_hdf5_file, args.vocab_file)
-    else:
-        raise ValueError
+
 
