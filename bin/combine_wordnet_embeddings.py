@@ -37,11 +37,11 @@ def extract_tucker_embeddings(tucker_archive, vocab_file, tucker_hdf5):
 
     # get embeddings
     embed = archive.model.kg_tuple_predictor.entities.weight.detach().numpy()
-    print(f'embed.shape {embed.shape}')
+    # print(f'embed.shape {embed.shape}')
     # print(embed[0])
     out_embeddings = np.zeros((NUM_EMBEDDINGS, embed.shape[1]))
     
-    print(f'out_embeddings.shape {out_embeddings.shape}')
+    # print(f'out_embeddings.shape {out_embeddings.shape}')
 
     vocab = archive.model.vocab
 
@@ -56,7 +56,7 @@ def extract_tucker_embeddings(tucker_archive, vocab_file, tucker_hdf5):
             # k = 0 is @@UNKNOWN@@, and want it at index 1 in output
             out_embeddings[k + 1, :] = embed[embed_id, :]
 
-    print(out_embeddings[0])
+    print(out_embeddings[1357])
     # write out to file
     with h5py.File(tucker_hdf5, 'w') as fout:
         ds = fout.create_dataset('tucker', data=out_embeddings)
@@ -79,7 +79,7 @@ def debias_tucker_embeddings(tucker_archive, tucker_hdf5, vocab_file):
         id1 = vocab.get_token_index('female.'+info, 'entity')
         id2 = vocab.get_token_index('male.'+info, 'entity')
         gender_dir_vecs.append(tucker[id1+1, :]-tucker[id2+1,:])
-    lambdas = [1.0]*5   #Parameters which decide the amount of debiasing
+    lambdas = [0.2]*5   #Parameters which decide the amount of debiasing
 
 
     #Debias tucker embeddings of job titles and traits
@@ -87,7 +87,7 @@ def debias_tucker_embeddings(tucker_archive, tucker_hdf5, vocab_file):
     num_debiased_embeddings = 0
     num_notfound_words = 0
     for filename in ["job_titles.txt", "negative_traits", "positive_traits"]:
-        f = open("bin/"+filename, "r")
+        f = open("bin/debiasing_words/refined_"+filename, "r")
         for line in f.readlines():
             target_word = line.strip().lower().replace(" - ","_").replace("-","_").replace(" ","_")
             entities = [w for w in vocab_list if w.startswith(target_word+".")]
@@ -105,12 +105,12 @@ def debias_tucker_embeddings(tucker_archive, tucker_hdf5, vocab_file):
                 for i in range(len(gender_dir_vecs)):  #Debias the embedding
                     gdv = gender_dir_vecs[i]
                     lam = lambdas[i]
-                    tucker[id+1, :] = tucker[id+1, :] - lam * np.dot(tucker[id+1, :], gdv) / np.linalg.norm(gdv)
+                    tucker[id+1, :] = tucker[id+1, :] - lam * np.dot(tucker[id+1, :], gdv) / np.linalg.norm(gdv) * gdv
     print(f'debiased {num_debiased_word} words, {num_debiased_embeddings} embeddings')
     print(f'Num not found: {num_notfound_words}')
 
     #Write to the new embeddings file.
-    with h5py.File('debiased_tucker_embeddings.hdf5', 'w') as fout:
+    with h5py.File('tucker_embeddings/debiased/e100_ldot2.hdf5', 'w') as fout:
         ds = fout.create_dataset('tucker', data=tucker)
 
 
