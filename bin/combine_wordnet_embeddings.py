@@ -48,6 +48,7 @@ def extract_tucker_embeddings(tucker_archive, vocab_file, tucker_hdf5):
 
     for k, entity in enumerate(vocab_list):
         embed_id = vocab.get_token_index(entity, 'entity')
+        # print(f'enumer(vocab_list) {k} vocab.get_token_index {embed_id}')
         if entity in ('@@MASK@@', '@@NULL@@'):
             # these aren't in the tucker vocab -> random init
             out_embeddings[k + 1, :] = np.random.randn(1, embed.shape[1]) * 0.004
@@ -76,38 +77,31 @@ def debias_tucker_embeddings(tucker_archive, tucker_hdf5, vocab_file):
     vocab = archive.model.vocab
     gender_dir_vecs = []
     for info in ["n.01", "n.02", "a.01", "s.02", "s.03"]:
-        id1 = vocab.get_token_index('female.'+info, 'entity')
-        id2 = vocab.get_token_index('male.'+info, 'entity')
-        gender_dir_vecs.append(tucker[id1+1, :]-tucker[id2+1,:])
+        # id1 = vocab.get_token_index('female.'+info, 'entity')
+        # id2 = vocab.get_token_index('male.'+info, 'entity')
+        k1 = [k for k,entity in enumerate(vocab_list) if entity.startswith('female.'+info)]
+        k2 = [k for k,entity in enumerate(vocab_list) if entity.startswith('male.'+info)]
+        print(f'k1 {k1} k2 {k2}')
+        gender_dir_vecs.append(tucker[k1[0]+1, :]-tucker[k2[0]+1,:])
     lambdas = [0.2]*5   #Parameters which decide the amount of debiasing
 
 
     #Debias tucker embeddings of job titles and traits
-    num_debiased_word = 0
-    num_debiased_embeddings = 0
-    num_notfound_words = 0
     for filename in ["job_titles.txt", "negative_traits", "positive_traits"]:
         f = open("bin/debiasing_words/refined_"+filename, "r")
         for line in f.readlines():
             target_word = line.strip().lower().replace(" - ","_").replace("-","_").replace(" ","_")
-            entities = [w for w in vocab_list if w.startswith(target_word+".")]
-            if len(entities)>0:
-                num_debiased_word += 1
-            else:
-                num_notfound_words += 1
-                print(f'Not found: {target_word}')
-            for entity in entities: #For each entity corresponding to each word
-                id = vocab.get_token_index(entity, 'entity')
+            idxs = [k for k,entity in enumerate(vocab_list) if entity.startswith(target_word+".")]
+            print(f'len(idxs) {len(idxs)}')
+            for k in idxs: #For each entity corresponding to each word
+                # id = vocab.get_token_index(entity, 'entity')
                 # print(f'entity {entity}, id {id}')
-                if id<0 or id>=NUM_EMBEDDINGS:
-                    continue
-                num_debiased_embeddings += 1
+                # if k<0 or k>=NUM_EMBEDDINGS:
+                #     continue
                 for i in range(len(gender_dir_vecs)):  #Debias the embedding
                     gdv = gender_dir_vecs[i]
                     lam = lambdas[i]
-                    tucker[id+1, :] = tucker[id+1, :] - lam * np.dot(tucker[id+1, :], gdv) / np.linalg.norm(gdv) * gdv
-    print(f'debiased {num_debiased_word} words, {num_debiased_embeddings} embeddings')
-    print(f'Num not found: {num_notfound_words}')
+                    tucker[k+1, :] = tucker[k+1, :] - gdv * lam * np.dot(tucker[k+1, :], gdv) / np.linalg.norm(gdv)
 
     #Write to the new embeddings file.
     with h5py.File('tucker_embeddings/debiased/e100_ldot2.hdf5', 'w') as fout:
