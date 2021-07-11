@@ -100,8 +100,7 @@ class BertPretrainedMetricsLoss(Model):
                       update_metrics=True):
 
         gc.collect()
-
-        # torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
 
         # (batch_size, timesteps, vocab_size), (batch_size, 2)
         prediction_scores, seq_relationship_score = self.pretraining_heads(
@@ -895,7 +894,7 @@ class KnowBert(BertPretrainedMetricsLoss):
 
         gc.collect()
 
-        # torch.cuda.empty_cache()
+        torch.cuda.empty_cache()
 
         assert candidates.keys() == self.soldered_kgs.keys()
 
@@ -920,6 +919,7 @@ class KnowBert(BertPretrainedMetricsLoss):
             start_layer_index = end_layer_index
 
             # del attention_mask
+            # gc.collect()
 
             # run the SolderedKG component
             if soldered_kg_key is not None:
@@ -938,6 +938,7 @@ class KnowBert(BertPretrainedMetricsLoss):
 
                 del soldered_kwargs
                 # del mask
+                # gc.collect()
 
                 if 'loss' in kg_output:
                     loss = loss + kg_output['loss']
@@ -954,6 +955,9 @@ class KnowBert(BertPretrainedMetricsLoss):
 
         # get the pooled CLS output
         pooled_output = self.pooler(contextual_embeddings)
+
+        gc.collect()
+        torch.cuda.empty_cache()
 
         if lm_label_ids is not None or next_sentence_label is not None:
             # compute loss !
