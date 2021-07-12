@@ -63,7 +63,7 @@
                     "concat_entity_embedder": {
                         "type": "wordnet_all_embeddings",
                         "entity_file": "https://allennlp.s3-us-west-2.amazonaws.com/knowbert/wordnet/entities.jsonl",
-                        "embedding_file": "debiased_wordnet_synsets_mask_null_vocab_embeddings_tucker_gensen.hdf5",
+                        "embedding_file": "tucker_gensen_embeddings/debiased/e100_ldot1.hdf5",
                         "vocab_file": "https://allennlp.s3-us-west-2.amazonaws.com/knowbert/wordnet/wordnet_synsets_mask_null_vocab.txt",
                         "entity_dim": 200,
                         "entity_h5_key": "tucker_gensen",
@@ -97,13 +97,13 @@
               [["bias", "LayerNorm.bias", "LayerNorm.weight", "layer_norm.weight"], {"weight_decay": 0.0}],
             ],
         },
-        "num_epochs": 1,
+        "num_epochs": 1, //5
 
         "learning_rate_scheduler": {
             "type": "slanted_triangular",
-            "num_epochs": 1,
+            "num_epochs": 5,
             // semcor + examples batch size=32
-            "num_steps_per_epoch": 200,
+            "num_steps_per_epoch": 2470,
         },
         "num_serialized_models_to_keep": 1,
         "should_log_learning_rate": true,

@@ -1,4 +1,5 @@
 {
+
     "vocabulary": {
         "directory_path": "https://allennlp.s3-us-west-2.amazonaws.com/knowbert/models/vocabulary_wordnet.tar.gz",
     },
@@ -63,7 +64,7 @@
                     "concat_entity_embedder": {
                         "type": "wordnet_all_embeddings",
                         "entity_file": "https://allennlp.s3-us-west-2.amazonaws.com/knowbert/wordnet/entities.jsonl",
-                        "embedding_file": "https://allennlp.s3-us-west-2.amazonaws.com/knowbert/wordnet/wordnet_synsets_mask_null_vocab_embeddings_tucker_gensen.hdf5",
+                        "embedding_file": "tucker_gensen_embeddings/pure/e100.hdf5",
                         "vocab_file": "https://allennlp.s3-us-west-2.amazonaws.com/knowbert/wordnet/wordnet_synsets_mask_null_vocab.txt",
                         "entity_dim": 200,
                         "entity_h5_key": "tucker_gensen",
@@ -97,7 +98,7 @@
               [["bias", "LayerNorm.bias", "LayerNorm.weight", "layer_norm.weight"], {"weight_decay": 0.0}],
             ],
         },
-        "num_epochs": 5,
+        "num_epochs": 1, //5
 
         "learning_rate_scheduler": {
             "type": "slanted_triangular",

@@ -64,7 +64,7 @@
     "iterator": {
         "type": "multitask_iterator",
         "names_to_index": ["language_modeling", "entity_linking"],
-        "iterate_forever": false,
+        "iterate_forever": false,//true
 
         "sampling_rates": [0.8, 0.2],
 
@@ -102,7 +102,7 @@
                     // this is ignored
                     "mask_candidate_strategy": "none",
                     "max_predictions_per_seq": 0,
-                    "iterate_forever": false,
+                    "iterate_forever": false, //true
                     "id_type": "wordnet",
                     "use_nsp_label": true,
                 }
@@ -118,7 +118,7 @@
     "model": {
         "type": "knowbert",
         "bert_model_name": "bert-base-uncased",
-        "model_archive": "debiased_wordnet_linker/model.tar.gz",
+        "model_archive": "models/kb/wordnet_linker/debiased/te100_ldot1_e1_s2470/model.tar.gz",
         "soldered_layers": {"wordnet": 9},
         "soldered_kgs": {
             "wordnet": {
@@ -129,7 +129,7 @@
                     "concat_entity_embedder": {
                         "type": "wordnet_all_embeddings",
                         "entity_file": "https://allennlp.s3-us-west-2.amazonaws.com/knowbert/wordnet/entities.jsonl",
-                        "embedding_file": "debiased_wordnet_synsets_mask_null_vocab_embeddings_tucker_gensen.hdf5",
+                        "embedding_file": "tucker_gensen_embeddings/debiased/e100_ldot1.hdf5",
                         "vocab_file": "https://allennlp.s3-us-west-2.amazonaws.com/knowbert/wordnet/wordnet_synsets_mask_null_vocab.txt",
                         "entity_dim": 200,
                         "entity_h5_key": "tucker_gensen",
@@ -182,12 +182,12 @@
         },
         "gradient_accumulation_batch_size": 32,
         "num_epochs": 1,
-        "num_steps_reset_metrics": 50,
+        "num_steps_reset_metrics": 5000,
 
         "learning_rate_scheduler": {
             "type": "slanted_triangular",
             "num_epochs": 1,
-            "num_steps_per_epoch": 240,
+            "num_steps_per_epoch": 240000,
             "cut_frac": 0.025,
         },
         "num_serialized_models_to_keep": 2,
