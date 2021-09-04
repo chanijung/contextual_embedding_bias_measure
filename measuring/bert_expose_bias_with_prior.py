@@ -1,7 +1,8 @@
-#!/usr/bin/env python
-# coding: utf-8
+"""
+Modified by chanijung.
+Original file is written by keitakurita.
+"""
 
-# In[1]:
 
 import torch
 import pandas as pd
@@ -11,16 +12,11 @@ from typing import *
 import matplotlib.pyplot as plt
 import torch.nn as nn
 import time
-# get_ipython().run_line_magic('matplotlib', 'inline')
-
-# get_ipython().run_line_magic('load_ext', 'autoreload')
-# get_ipython().run_line_magic('autoreload', '2')
+import os
 
 import sys
 sys.path.append("../lib")
 
-
-# In[2]:
 
 
 class Config(dict):
@@ -39,15 +35,11 @@ config = Config(
 )
 
 
-# In[3]:
-
 
 T = TypeVar('T')
 def flatten(x: List[List[T]]) -> List[T]:
     return [item for sublist in x for item in sublist]
 
-
-# In[4]:
 
 
 from allennlp.common.util import get_spacy_model
@@ -63,9 +55,6 @@ def spacy_tok(s: str):
 def softmax(arr, axis=1):
     e = np.exp(arr)
     return e / e.sum(axis=axis, keepdims=True)
-
-
-# In[5]:
 
 
 from allennlp.data.tokenizers.word_splitter import SpacyWordSplitter
@@ -93,62 +82,34 @@ from kb.include_all import ModelArchiveFromParams
 from kb.knowbert_utils import KnowBertBatchifier
 from allennlp.common import Params
 
-#BERT
-# model = BertForMaskedLM.from_pretrained(config.model_type)
 
 #KnowBERT
-archive_file = 'models/kb/wordnet/pure/e1_s240000/model.tar.gz'
+archive_file = os.path.join('models/kb/wordnet/debiased/ldot2_e1_s240000/', 'model.tar.gz')
 print(f'archive: {archive_file}')
 params = Params({"archive_file": archive_file})
 # load model and batcher
 before=time.time()
 model = ModelArchiveFromParams.from_params(params=params)
 print(f'{time.time()-before} sec taken until model')
-# device = list(range(torch.cuda.device_count()))[0]
-# model.cuda()
 for p in model.parameters():
     p.requires_grad_(False)
 print("model built!!!!!!!")
 
+#here
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-
-# if torch.cuda.device_count() > 1:
-#   print("Let's use", torch.cuda.device_count(), "GPUs!")
-  # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
-  # model = nn.DataParallel(model)
 
 model.to(device)
 model.eval()
 
 batcher = KnowBertBatchifier(archive_file, masking_strategy='full_mask')
-print(f'{time.time()-before} sec taken until batcher')
 vocab = batcher.tokenizer_and_candidate_generator.bert_tokenizer.vocab
-print(f'{time.time()-before} sec taken until vocab')
-# mask_id = batcher.tokenizer_and_candidate_generator.bert_tokenizer.vocab['[MASK]']
 mask_id = vocab['[MASK]']
 
-# if torch.cuda.is_available():
-#     cuda_device = list(range(torch.cuda.device_count()))
-#     model = model.cuda(cuda_device[0])
-#     print('cuda success')
-# else:
-#     cuda_device = -1
-#     print('cuda fail')
-
-
-
-# In[7]:
 
 
 from allennlp.data import Vocabulary
 
-# vocab = Vocabulary()
-# token_indexer._add_encoding_to_vocabulary(vocab)
 
-
-
-
-# In[18]:
 
 
 def softmax(x, axis=0, eps=1e-9):
@@ -158,51 +119,27 @@ def softmax(x, axis=0, eps=1e-9):
 
 
 def get_logit_scores(input_sentence: str, words: int) -> Dict[str, float]:
-    # out_logits = get_logits(input_sentence)
-    # input_toks = tokenize(input_sentence)
-    # i = _get_mask_index(input_toks)
 
     sentences = [input_sentence]
-    # print(f'sentences: {sentences}')
 
-    # print(f'archive_file {archive_file}')
-    # batcher = KnowBertBatchifier(archive_file, masking_strategy='full_mask')
-    # mask_id = batcher.tokenizer_and_candidate_generator.bert_tokenizer.vocab['[MASK]']
-    # print(f'mask_id {mask_id}')
-
-    # batcher takes raw untokenized sentences
-    # and yields batches of tensors needed to run KnowBert
-    # print(f'created batcher, mask_id {time.time()-start}')
-    # device = list(range(torch.cuda.device_count()))[0]
     print(f'Inside get_log_odds')
     start = time.time()
     with torch.no_grad():
         for batch in batcher.iter_batches(sentences):
             print(f'{time.time()-start} sec taken until iter_batches')
-            # batch = {k:v.type(torch.long).to(device) for k,v in batch.items()}
-            # print(f'batch\n{batch}')
             batch_ = move_to(batch, device)
             model_output = model(**batch_)
-            # print(f'model_output {time.time()-start}')
             token_mask = batch_['tokens']['tokens'] == mask_id
 
-            # (batch_size, timesteps, vocab_size)
             prediction_scores, _ = model.pretraining_heads(
                     model_output['contextual_embeddings'], model_output['pooled_output']
             )
-            # print(f'prediction scores {time.time()-start}')
-            # print(f'pred score size {prediction_scores.size()}')
 
             # (num_masked_tokens, vocab_size)
             mask_token_probabilities = prediction_scores.masked_select(token_mask.unsqueeze(-1)).view(-1, prediction_scores.shape[-1])  # (num_masked_tokens, vocab_size)
-            # print(f'mask_token_prob size {mask_token_probabilities.size()}')
+
 
     mask_token_probabilities = mask_token_probabilities.detach().cpu().numpy()
-    # return {w: out_logits[i, token_indexer.vocab[w]] for w in words}
-    
-    # print(f'before return {time.time()-start}')
-    # for w in words:
-        # print(f'vocab index for {w}: {vocab[w]}')
     return {w: mask_token_probabilities[:,vocab[w]] for w in words}
 
 def get_log_odds(input_sentence: str, word1: str, word2: str) -> float:
@@ -211,12 +148,6 @@ def get_log_odds(input_sentence: str, word1: str, word2: str) -> float:
 
 def get_mask_fill_logits(sentence: str, words: Iterable[str],
                          use_last_mask=False, apply_softmax=False) -> Dict[str, float]:
-    # mask_i = processor.get_index(sentence, "[MASK]", last=use_last_mask)
-    # logits = defaultdict(list)
-    # out_logits = get_logits(sentence)
-    # if apply_softmax: 
-    #     out_logits = softmax(out_logits)
-    # return {w: out_logits[mask_i, processor.token_to_index(w)] for w in words}
 
     sentences = [sentence]
     print(f'sentences {sentences}')
