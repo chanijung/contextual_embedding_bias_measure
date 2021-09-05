@@ -20,11 +20,12 @@ pip install --editable .
 
 <!-- ### Debiasing KnowBERT -->
 
-Tutorial __How to pretrain pure/debiased KnowBERT__ is referenced from https://github.com/allenai/kb and partly modified for adding debiasing method.
+Tutorial __How to pretrain pure/debiased KnowBERT__ is referenced from [kb](https://github.com/allenai/kb) and partly modified for adding debiasing method.
 
 ### How to pretrain pure/debiased KnowBert
 
-We can build KnowBert-WordNet, KnowBert-Wiki, and KnowBert-WordNet+Wiki using the code and resources provided by https://github.com/allenai/kb.
+We can build KnowBert-WordNet, KnowBert-Wiki, and KnowBert-WordNet+Wiki using the code and resources provided by [kb](https://github.com/allenai/kb).
+
 However, I only used KnowBert-WordNet for this work.
 
 Roughly speaking, the process to fine tune BERT into KnowBert is:
@@ -182,7 +183,7 @@ percentage of attributes that are more associated with each gender, in the mask 
 ### How to run intrinisic evaluation
 
 In this work, only heldout perplexity is evaluated for intrinsic evaluation.
-However, you can test more evaluation tasks for your KnowBert model, which can be found in https://github.com/allenai/kb
+However, you can test more evaluation tasks for your KnowBert model, which can be found in [kb](https://github.com/allenai/kb)
 
 #### Heldout perplexity (Table 2)
 
