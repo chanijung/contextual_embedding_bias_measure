@@ -37,18 +37,13 @@ def extract_tucker_embeddings(tucker_archive, vocab_file, tucker_hdf5):
 
     # get embeddings
     embed = archive.model.kg_tuple_predictor.entities.weight.detach().numpy()
-    # print(f'embed.shape {embed.shape}')
-    # print(embed[0])
     out_embeddings = np.zeros((NUM_EMBEDDINGS, embed.shape[1]))
-    
-    # print(f'out_embeddings.shape {out_embeddings.shape}')
 
     vocab = archive.model.vocab
 
 
     for k, entity in enumerate(vocab_list):
         embed_id = vocab.get_token_index(entity, 'entity')
-        # print(f'enumer(vocab_list) {k} vocab.get_token_index {embed_id}')
         if entity in ('@@MASK@@', '@@NULL@@'):
             # these aren't in the tucker vocab -> random init
             out_embeddings[k + 1, :] = np.random.randn(1, embed.shape[1]) * 0.004
@@ -57,7 +52,6 @@ def extract_tucker_embeddings(tucker_archive, vocab_file, tucker_hdf5):
             # k = 0 is @@UNKNOWN@@, and want it at index 1 in output
             out_embeddings[k + 1, :] = embed[embed_id, :]
 
-    print(out_embeddings[1357])
     # write out to file
     with h5py.File(tucker_hdf5, 'w') as fout:
         ds = fout.create_dataset('tucker', data=out_embeddings)
@@ -77,13 +71,10 @@ def debias_tucker_embeddings(tucker_archive, tucker_hdf5, vocab_file):
     vocab = archive.model.vocab
     gender_dir_vecs = []
     for info in ["n.01", "n.02", "a.01", "s.02", "s.03"]:
-        # id1 = vocab.get_token_index('female.'+info, 'entity')
-        # id2 = vocab.get_token_index('male.'+info, 'entity')
         k1 = [k for k,entity in enumerate(vocab_list) if entity.startswith('female.'+info)]
         k2 = [k for k,entity in enumerate(vocab_list) if entity.startswith('male.'+info)]
-        print(f'k1 {k1} k2 {k2}')
         gender_dir_vecs.append(tucker[k1[0]+1, :]-tucker[k2[0]+1,:])
-    lambdas = [0.2]*5   #Parameters which decide the amount of debiasing
+    lambdas = [0.1]*5   #Parameters which decide the amount of debiasing
 
 
     #Debias tucker embeddings of job titles and traits
@@ -92,19 +83,17 @@ def debias_tucker_embeddings(tucker_archive, tucker_hdf5, vocab_file):
         for line in f.readlines():
             target_word = line.strip().lower().replace(" - ","_").replace("-","_").replace(" ","_")
             idxs = [k for k,entity in enumerate(vocab_list) if entity.startswith(target_word+".")]
-            print(f'len(idxs) {len(idxs)}')
             for k in idxs: #For each entity corresponding to each word
-                # id = vocab.get_token_index(entity, 'entity')
-                # print(f'entity {entity}, id {id}')
-                # if k<0 or k>=NUM_EMBEDDINGS:
-                #     continue
+                #Eliminate the projection of the original entity embedding on each of the gender directional vectors.
+                original = np.copy(tucker[k+1, :])
                 for i in range(len(gender_dir_vecs)):  #Debias the embedding
                     gdv = gender_dir_vecs[i]
                     lam = lambdas[i]
-                    tucker[k+1, :] = tucker[k+1, :] - gdv * lam * np.dot(tucker[k+1, :], gdv) / np.linalg.norm(gdv)
+                    tucker[k+1, :] = tucker[k+1, :] - gdv * lam * np.dot(original, gdv) / np.linalg.norm(gdv)
 
     #Write to the new embeddings file.
-    with h5py.File('tucker_embeddings/debiased/e100_ldot2.hdf5', 'w') as fout:
+
+    with h5py.File(args.deb_tucker_hdf5_file, 'w') as fout:
         ds = fout.create_dataset('tucker', data=tucker)
 
 
@@ -132,9 +121,6 @@ def create_refined_word_lists():
         print(f'Found: {num_debiased_word}')
         print(f'Not found: {num_notfound_words}')
         print(not_found_words)
-
-    # print(f'debiased {num_debiased_word} words, {num_debiased_embeddings} embeddings')
-    # print(f'Num not found: {num_notfound_words}')
 
 
 def get_gensen_synset_definitions(entity_file, vocab_file, gensen_file):
@@ -209,6 +195,7 @@ if __name__ == '__main__':
     parser.add_argument('--tucker_hdf5_file', type=str)
 
     parser.add_argument('--debias_tucker', default=False, action="store_true")
+    parser.add_argument('--deb_tucker_hdf5_file', type=str)
 
     parser.add_argument('--combine_tucker_gensen', default=False, action="store_true")
     parser.add_argument('--all_embeddings_file', type=str)
