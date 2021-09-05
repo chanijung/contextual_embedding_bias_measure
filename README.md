@@ -32,8 +32,8 @@ Roughly speaking, the process to fine tune BERT into KnowBert is:
 1. Prepare your corpus.
 2. Prepare the knowledge bases (not necessary if you are using Wikipedia or WordNet as we have already prepared these).
 3. For each knowledge base:
-    A. Pretrain the entity linker while freezing everything else.
-    B. Fine tune all parameters (except entity embeddings).
+    A) Pretrain the entity linker while freezing everything else.
+    B) Fine tune all parameters (except entity embeddings).
 
 
 #### Prepare your corpus.
