@@ -1,5 +1,6 @@
 # Identifying and Mitigating Gender Bias in Knowledge Enhanced Contextual Word Representations
 Code for the report *Identifying and Mitigating Gender Bias in Knowledge Enhanced Contextual Word Representations* by Chani Jung.
+
 The code and resources used in this work reference [kb](https://github.com/allenai/kb) (allenai, 2020.06.03) and [contextual_embedding_bias_measure](https://github.com/keitakurita/contextual_embedding_bias_measure) (keitakurita, 2019.07.20).
 
 ## Requirements
