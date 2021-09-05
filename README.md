@@ -45,27 +45,27 @@ Roughly speaking, the process to fine tune BERT into KnowBert is:
 1. We have already prepared the knowledge bases for Wikipedia and WordNet.  The necessary files will be automatically downloaded as needed when running evaluations or fine tuning KnowBert.
 2. If you would like to add an additional knowledge source to KnowBert, these are roughly the steps to follow:
 
-    A. Compute entity embeddings for each entity in your knowledge base.
-    B. Write a candidate generator for the entity linkers.  Use the existing WordNet or Wikipedia generators as templates.
+    1. Compute entity embeddings for each entity in your knowledge base.
+    2. Write a candidate generator for the entity linkers.  Use the existing WordNet or Wikipedia generators as templates.
 
 3.  Our Wikipedia candidate dictionary list and embeddings were extracted from [End-to-End Neural Entity Linking, Kolitsas et al 2018](https://github.com/dalab/end2end_neural_el) via a manual process.
 
 4. Our WordNet candidate generator is rule based (see code).  The embeddings were computed via a multistep process that combines [TuckER](https://arxiv.org/abs/1901.09590) and [GenSen](https://github.com/Maluuba/gensen) embeddings.  The prepared files contain everything needed to run KnowBert and include:
 
-    A. `entities.jsonl` - metadata about WordNet synsets.
+    1. `entities.jsonl` - metadata about WordNet synsets.
     
-    B. `wordnet_synsets_mask_null_vocab.txt` and `wordnet_synsets_mask_null_vocab_embeddings_tucker_gensen.hdf5` - vocabulary file and embedding file for WordNet synsets.
+    2. `wordnet_synsets_mask_null_vocab.txt` and `wordnet_synsets_mask_null_vocab_embeddings_tucker_gensen.hdf5` - vocabulary file and embedding file for WordNet synsets.
     
-    C. `semcor_and_wordnet_examples.json` annotated training data combining SemCor and WordNet examples for supervising the WordNet linker.
+    3. `semcor_and_wordnet_examples.json` annotated training data combining SemCor and WordNet examples for supervising the WordNet linker.
 
 5. If you would like to generate these files yourself from scratch, follow these steps.
 
-    A. Extract the WordNet metadata and relationship graph.
+    1. Extract the WordNet metadata and relationship graph.
         ```
         python bin/extract_wordnet.py --extract_graph --entity_file $WORKDIR/entities.jsonl --relationship_file $WORKDIR/relations.txt
         ```
         
-    B. Download the [Words-in-Context dataset](https://pilehvar.github.io/wic/) to exclude from the extracted WordNet example usages.
+    2. Download the [Words-in-Context dataset](https://pilehvar.github.io/wic/) to exclude from the extracted WordNet example usages.
         ```
         WORKDIR=.
         cd $WORKDIR
@@ -73,61 +73,61 @@ Roughly speaking, the process to fine tune BERT into KnowBert is:
         unzip WiC_dataset.zip
         ```
         
-    C. Download the [word sense diambiguation data](http://lcl.uniroma1.it/wsdeval/):
+    3. Download the [word sense diambiguation data](http://lcl.uniroma1.it/wsdeval/):
         ```
         cd $WORKDIR
         wget http://lcl.uniroma1.it/wsdeval/data/WSD_Evaluation_Framework.zip
         unzip WSD_Evaluation_Framework.zip
         ```
         
-    D. Convert the WSD data from XML to jsonl, and concatenate all evaluation files for easy evaluation:
+    4. Convert the WSD data from XML to jsonl, and concatenate all evaluation files for easy evaluation:
         ```
         mkdir $WORKDIR/wsd_jsonl
         python bin/preprocess_wsd.py --wsd_framework_root $WORKDIR/WSD_Evaluation_Framework  --outdir $WORKDIR/wsd_jsonl
         cat $WORKDIR/wsd_jsonl/semeval* $WORKDIR/wsd_jsonl/senseval* > $WORKDIR/semeval2007_semeval2013_semeval2015_senseval2_senseval3.json
         ```
         
-    E. Extract all the synset example usages from WordNet (after removing sentences from WiC heldout sets):
+    5. Extract all the synset example usages from WordNet (after removing sentences from WiC heldout sets):
         ```
         python bin/extract_wordnet.py --extract_examples_wordnet --entity_file $WORKDIR/entities.jsonl --wic_root_dir $WORKDIR --wordnet_example_file $WORKDIR/wordnet_examples_remove_wic_devtest.json
         ```
         
-    F. Combine WordNet examples and definitions with SemCor for training KnowBert:
+    6. Combine WordNet examples and definitions with SemCor for training KnowBert:
         ```
         cat $WORKDIR/wordnet_examples_remove_wic_devtest.json $WORKDIR/wsd_jsonl/semcor.json > $WORKDIR/semcor_and_wordnet_examples.json
         ```
         
-    G. Create training and test splits of the relationship graph.
+    7. Create training and test splits of the relationship graph.
         ```
         python bin/extract_wordnet.py --split_wordnet --relationship_file $WORKDIR/relations.txt --relationship_train_file $WORKDIR/relations_train99.txt --relationship_dev_file $WORKDIR/relations_dev01.txt
         ```
         
-    H. Train TuckER embeddings on the extracted graph.  The configuration files uses relationship graph files on S3, although you can substitute them for the files generated in the previous step by modifying the configuration file.
+    8. Train TuckER embeddings on the extracted graph.  The configuration files uses relationship graph files on S3, although you can substitute them for the files generated in the previous step by modifying the configuration file.
         ```
         allennlp train -s $WORKDIR/wordnet_tucker --include-package kb.kg_embedding --file-friendly-logging training_config/pretraining/wordnet_tucker.json
         ```
         
-    I. Generate a vocabulary file useful for WordNet synsets with special tokens
+    9. Generate a vocabulary file useful for WordNet synsets with special tokens
         ```
         python bin/combine_wordnet_embeddings.py --generate_wordnet_synset_vocab --entity_file $WORKDIR/entities.jsonl --vocab_file $WORKDIR/wordnet_synsets_mask_null_vocab.txt
         ```
         
-    J. Get the [GenSen](https://github.com/Maluuba/gensen) embeddings from each synset definition.  First install the code from this link.  Then run
+    10. Get the [GenSen](https://github.com/Maluuba/gensen) embeddings from each synset definition.  First install the code from this link.  Then run
         ```
         python bin/combine_wordnet_embeddings.py --generate_gensen_embeddings --entity_file $WORKDIR/entities.jsonl --vocab_file $WORKDIR/wordnet_synsets_mask_null_vocab.txt --gensen_file $WORKDIR/gensen_synsets.hdf5
         ```
         
-    K. Extract the TuckER embeddings for the synsets from the trained model
+    11. Extract the TuckER embeddings for the synsets from the trained model
         ```
         python bin/combine_wordnet_embeddings.py --extract_tucker --tucker_archive_file $WORKDIR/models/wordnet_tucker/model.tar.gz --vocab_file $WORKDIR/wordnet_synsets_mask_null_vocab.txt --tucker_hdf5_file $WORKDIR/pure/tucker_embeddings.hdf5
         ```
         
-    L. Debias tucker embeddings.
+    12. Debias tucker embeddings.
     ```
     python bin/combine_wordnet_embeddings.py --debias_tucker --tucker_archive_file models/wordnet_tucker/model.tar.gz --tucker_hdf5_file tucker_embeddings/pure/tucker_embeddings.hdf5 --vocab_file $WORKDIR/wordnet_synsets_mask_null_vocab.txt --deb_tucker_hdf5_file tucker_embeddings/debiased/tucker_embeddings.hdf5
     ```
         
-    M. Finally combine the TuckER and GenSen embeddings into one file
+    13. Finally combine the TuckER and GenSen embeddings into one file
         ```
         python bin/combine_wordnet_embeddings.py --combine_tucker_gensen --tucker_hdf5_file tucker_embeddings/debiased/tucker_embeddings.hdf5 --gensen_file $WORKDIR/gensen_synsets.hdf5 --all_embeddings_file tucker_gensen_embeddings/debiased/tucker_gensen_embeddings.hdf5
         ```
