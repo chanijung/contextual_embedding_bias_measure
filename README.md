@@ -1,7 +1,4 @@
-# Debiasing KnowBERT using the knowledge graph embeddings
-Code for the report *Identifying and Mitigating Gender Bias in Knowledge Enhanced Contextual Word Representations* by Chani Jung.
-
-
+# Identifying and Mitigating Gender Bias in Knowledge Enhanced Contextual Word Representations
 
 ## Requirements
 - Python 3.6.7 or higher
