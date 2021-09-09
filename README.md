@@ -2,7 +2,7 @@
 Code for the report *Identifying and Mitigating Gender Bias in Knowledge Enhanced Contextual Word Representations* by Chani Jung.
 The report is also uploaded as a pdf.
 
-The code and resources used in this work reference [kb](https://github.com/allenai/kb) (allenai, 2020.06.03) and [contextual_embedding_bias_measure](https://github.com/keitakurita/contextual_embedding_bias_measure) (keitakurita, 2019.07.20).
+The code and resources used in this work expand [kb](https://github.com/allenai/kb) (allenai, 2020.06.03) and [contextual_embedding_bias_measure](https://github.com/keitakurita/contextual_embedding_bias_measure) (keitakurita, 2019.07.20).
 
 ## Requirements
 - Python 3.6.7 or higher
